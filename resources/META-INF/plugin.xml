@@ -1,0 +1,76 @@
+<idea-plugin>
+  <id>com.thoughtworks.work</id>
+  <name>测试工序生成</name>
+  <version>1.1</version>
+  <vendor email="jincheng.zhang@thoughtworks.com" url="http://www.thoughtworks.com">ThoughtWorks</vendor>
+
+  <description><![CDATA[
+      Enter short description for your plugin here.<br>
+      <em>most HTML tags may be used</em>
+    ]]></description>
+
+
+  <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="173.0"/>
+
+  <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
+  <actions>
+    <group id="com.thoughtworks.work.action.JUnitGeneratorMenu"
+           class="com.thoughtworks.work.action.JUnitGeneratorGroup"
+           popup="true"
+           text="工序测试">
+      <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup2"/>
+    </group>
+    <group id="com.thoughtworks.work.action.JUnitGeneratorEditorMenu"
+           popup="true"
+           text="Edit">
+      <reference ref="CutCopyPasteGroup"/>
+      <separator/>
+      <reference ref="ReformatCode"/>
+    </group>
+  </actions>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- configurable extension -->
+    <applicationConfigurable
+            instance="com.thoughtworks.work.ui.JUnitGeneratorConfigurable$AppConfigurable"/>
+    <projectConfigurable instance="com.thoughtworks.work.ui.JUnitGeneratorConfigurable$PrjConfigurable"/>
+    <!-- service for the settings -->
+    <applicationService
+            serviceImplementation="com.thoughtworks.work.ui.JUnitGeneratorConfigurable$AppSettings"/>
+    <projectService
+            serviceImplementation="com.thoughtworks.work.ui.JUnitGeneratorConfigurable$PrjSettings"/>
+  </extensions>
+
+  <change-notes><![CDATA[
+            <p>This revision adds support for pattern ${PROJECT_BASE} when exporting unit tests.</p>
+            <p>Re-released with java 1.6 compatibility.</p>
+            <p>Previous release notes:</p>
+            <ul>
+            <li><a href="https://code.google.com/p/junit-generator-v2/issues/detail?id=2">https://code.google.com/p/junit-generator-v2/issues/detail?id=2</a>
+            <li><a href="https://code.google.com/p/junit-generator-v2/issues/detail?id=3">https://code.google.com/p/junit-generator-v2/issues/detail?id=3</a>
+            <li><a href="https://code.google.com/p/junit-generator-v2/issues/detail?id=4">https://code.google.com/p/junit-generator-v2/issues/detail?id=4</a>
+            <li><a href="https://code.google.com/p/junit-generator-v2/issues/detail?id=6">https://code.google.com/p/junit-generator-v2/issues/detail?id=6</a>
+            <li><a href="https://code.google.com/p/junit-generator-v2/issues/detail?id=7">https://code.google.com/p/junit-generator-v2/issues/detail?id=7</a>
+            </ul>
+            <br/>
+            <p>Revision 2.0.9 contains the following updates:</p>
+            <ul>
+            <li>Upgraded to newest version of the open api
+            <li>Added project and application settings areas
+            <li>Fixed an issue when overwriting an existing test case
+            <li>The configuration now uses a form based swing dialog
+            <li>Multiple templates can be selected from the menu
+            <li>Various other improvements and code enhancements
+            </ul>
+            ]]>
+  </change-notes>
+
+</idea-plugin>
