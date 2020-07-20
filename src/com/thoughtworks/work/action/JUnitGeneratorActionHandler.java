@@ -350,7 +350,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             for (PsiElement child : value.getChildren()) {
                 if (child instanceof PsiReferenceExpression) {
                     if (child.getReference().resolve().getParent() instanceof PsiClass) {
-                        PsiClass psiClass = (PsiClass) value.getReference().resolve().getParent();
+                        PsiClass psiClass = (PsiClass) child.getReference().resolve().getParent();
                         importList.add(psiClass.getQualifiedName());
                         importList.add("static " + psiClass.getQualifiedName() + "." + child.getText());
                     }
