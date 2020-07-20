@@ -426,7 +426,12 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
     }
 
     private String connectUrl(String path1, String path2, List<String> parmas) {
-        return path1 + " + " + path2 + "+" + '"' + tool.buildHttpParam(parmas) + '"';
+        String p = tool.buildHttpParam(parmas);
+        if (!p.trim().isEmpty()) {
+            return path1 + " + " + path2 + "+" + '"' + tool.buildHttpParam(parmas) + '"';
+        } else {
+            return path1 + " + " + path2;
+        }
     }
 
     private String createSignature(PsiMethod method) {
