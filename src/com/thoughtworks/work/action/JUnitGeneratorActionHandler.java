@@ -33,6 +33,7 @@ import java.io.StringWriter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * This is where the magic happens.
@@ -54,7 +55,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
 
     private final Tool tool = new Tool();
 
-    private Set<String> importList = new HashSet<>();
+    private Set<String> importSet = new HashSet<>();
 
     public JUnitGeneratorActionHandler(String name) {
         this.templateKey = name;
@@ -124,8 +125,11 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
 
                     List<ConstructorParam> constructorParam = createConstructorParam(psiClass);
                     constructorParam.forEach(n -> {
-                        importList.addAll(n.getImportNames());
+                        importSet.addAll(n.getImportNames());
                     });
+                    List<String> importList = importSet.stream().filter(n -> {
+                        return n.split(".").length != 1;
+                    }).collect(Collectors.toList());
                     entryList.add(new TemplateEntry(genCtx.getClassName(false),
                             genCtx.getPackageName(),
                             methodCompositeList,
@@ -133,9 +137,9 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                             fieldList,
                             constructorParam,
                             createDeepConstructorParamList(psiClass, project),
-                            new ArrayList<>(importList)
+                            importList
                     ));
-                    importList.clear();
+                    importSet.clear();
                     process(genCtx, entryList);
                     //}
                 } catch (Exception e) {
@@ -155,7 +159,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         deepConstructorParamList.add(constructorParam);
         createDeepConstructorParam(deepConstructorParamList, psiClass, project, constructorParam);
         deepConstructorParamList.forEach(n -> {
-            importList.addAll(n.getImportNames());
+            importSet.addAll(n.getImportNames());
         });
         Collections.reverse(deepConstructorParamList);
         HashSet<String> deepConstructorParamHash = new HashSet<>();
@@ -340,8 +344,8 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             PsiReferenceExpressionImpl value = (PsiReferenceExpressionImpl) psiNameValuePair.getValue();
             if (value.resolve().getParent() instanceof PsiClass) {
                 PsiClass psiClass = (PsiClass) value.resolve().getParent();
-                importList.add(psiClass.getQualifiedName());
-                importList.add("static " + psiClass.getQualifiedName() + "." + value.getCanonicalText());
+                importSet.add(psiClass.getQualifiedName());
+                importSet.add("static " + psiClass.getQualifiedName() + "." + value.getCanonicalText());
             }
             return value.getCanonicalText();
         }
@@ -351,8 +355,8 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                 if (child instanceof PsiReferenceExpression) {
                     if (child.getReference().resolve().getParent() instanceof PsiClass) {
                         PsiClass psiClass = (PsiClass) child.getReference().resolve().getParent();
-                        importList.add(psiClass.getQualifiedName());
-                        importList.add("static " + psiClass.getQualifiedName() + "." + child.getText());
+                        importSet.add(psiClass.getQualifiedName());
+                        importSet.add("static " + psiClass.getQualifiedName() + "." + child.getText());
                     }
                 }
             }
@@ -383,7 +387,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                             parameter.getName()
                     );
                     restInfo.setBody(constructorParam);
-                    importList.addAll(constructorParam.getImportNames());
+                    importSet.addAll(constructorParam.getImportNames());
                 }
                 if (annotation.getQualifiedName().equals("org.springframework.web.bind.annotation.RequestParam")) {
                     for (PsiNameValuePair attribute : annotation.getParameterList().getAttributes()) {
