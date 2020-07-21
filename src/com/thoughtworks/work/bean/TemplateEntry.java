@@ -1,8 +1,6 @@
 package com.thoughtworks.work.bean;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -29,33 +27,33 @@ public class TemplateEntry {
 
     private List<String> importList = new ArrayList<String>();
 
-    public String getBaseControllerTest() {
-        return baseControllerTest;
+    public String getBaseApiTest() {
+        return baseApiTest;
     }
 
-    public void setBaseControllerTest(String baseControllerTest) {
-        this.baseControllerTest = baseControllerTest;
+    public void setBaseApiTest(String baseApiTest) {
+        this.baseApiTest = baseApiTest;
     }
 
-    public String getBaseServiceTest() {
-        return baseServiceTest;
+    public String getBaseBusinessTest() {
+        return baseBusinessTest;
     }
 
-    public void setBaseServiceTest(String baseServiceTest) {
-        this.baseServiceTest = baseServiceTest;
+    public void setBaseBusinessTest(String baseBusinessTest) {
+        this.baseBusinessTest = baseBusinessTest;
     }
 
-    public String getBaseRepositoryTest() {
-        return baseRepositoryTest;
+    public String getBaseFakeTest() {
+        return baseFakeTest;
     }
 
-    public void setBaseRepositoryTest(String baseRepositoryTest) {
-        this.baseRepositoryTest = baseRepositoryTest;
+    public void setBaseFakeTest(String baseFakeTest) {
+        this.baseFakeTest = baseFakeTest;
     }
 
-    private String baseControllerTest;
-    private String baseServiceTest;
-    private String baseRepositoryTest;
+    private String baseApiTest;
+    private String baseBusinessTest;
+    private String baseFakeTest;
     private String className;
     private String packageName;
 
@@ -103,9 +101,9 @@ public class TemplateEntry {
                          List<ConstructorParam> constructorParamList,
                          List<ConstructorParam> deepConstructorParamList,
                          List<String> importList,
-                         String baseControllerTest,
-                         String baseServiceTest,
-                         String baseRepositoryTest
+                         String baseApiTest,
+                         String baseBusinessTest,
+                         String baseFakeTest
     ) {
         this.className = className;
         this.packageName = packageName;
@@ -115,8 +113,8 @@ public class TemplateEntry {
         this.deepConstructorParamList = deepConstructorParamList;
         this.constructorParamList = constructorParamList;
         this.importList = importList;
-        this.baseControllerTest = baseControllerTest;
-        this.baseServiceTest = baseServiceTest;
-        this.baseRepositoryTest = baseRepositoryTest;
+        this.baseApiTest = baseApiTest;
+        this.baseBusinessTest = baseBusinessTest;
+        this.baseFakeTest = baseFakeTest;
     }
 }

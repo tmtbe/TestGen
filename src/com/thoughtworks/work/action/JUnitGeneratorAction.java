@@ -16,9 +16,10 @@ import com.thoughtworks.work.util.JUnitGeneratorUtil;
  * @since <pre>Aug 28, 2003</pre>
  */
 public class JUnitGeneratorAction extends EditorAction {
-
+    private String name;
     public JUnitGeneratorAction(String name) {
         super(new JUnitGeneratorActionHandler(name));
+        this.name = name;
         getTemplatePresentation().setDescription("description");
         getTemplatePresentation().setText(name, false);
     }
@@ -33,5 +34,13 @@ public class JUnitGeneratorAction extends EditorAction {
     public void update(Editor editor, Presentation presentation, DataContext dataContext) {
         PsiJavaFile javaFile = JUnitGeneratorUtil.getSelectedJavaFile(dataContext);
         presentation.setEnabled(javaFile != null);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

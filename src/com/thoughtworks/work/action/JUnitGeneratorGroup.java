@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -57,6 +58,13 @@ public class JUnitGeneratorGroup extends ActionGroup implements DumbAware {
             //subgroup.add(action);
             children.add(action);
         }
+        Collections.sort(children, (a, b) -> {
+            JUnitGeneratorAction aa = (JUnitGeneratorAction) a;
+            JUnitGeneratorAction bb = (JUnitGeneratorAction) b;
+            if (aa == null) return 1;
+            if (bb == null) return -1;
+            return aa.getName().compareTo(bb.getName());
+        });
         return children.toArray(new AnAction[children.size()]);
     }
 

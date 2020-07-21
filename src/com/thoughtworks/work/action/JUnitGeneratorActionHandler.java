@@ -141,9 +141,9 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                             constructorParam,
                             createDeepConstructorParamList(psiClass, project),
                             importList,
-                            findClassName("BaseControllerTest"),
-                            findClassName("BaseServiceTest"),
-                            findClassName("BaseRepositoryTest")
+                            findClassName("BaseApiTest"),
+                            findClassName("BaseBusinessTest"),
+                            findClassName("BaseFakeTest")
                     ));
                     importSet.clear();
                     process(genCtx, entryList);
