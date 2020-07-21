@@ -12,6 +12,7 @@ import com.intellij.psi.impl.source.tree.java.PsiBinaryExpressionImpl;
 import com.intellij.psi.impl.source.tree.java.PsiLiteralExpressionImpl;
 import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.PsiShortNamesCache;
 import com.thoughtworks.work.JUnitGeneratorContext;
 import com.thoughtworks.work.JUnitGeneratorFileCreator;
 import com.thoughtworks.work.bean.ConstructorParam;
@@ -56,12 +57,14 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
     private final Tool tool = new Tool();
 
     private Set<String> importSet = new HashSet<>();
+    private Project project;
 
     public JUnitGeneratorActionHandler(String name) {
         this.templateKey = name;
     }
 
     public String getTemplate(Project project) {
+        this.project = project;
         return JUnitGeneratorUtil.getInstance(project).getTemplate(this.templateKey);
     }
 
@@ -137,7 +140,10 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                             fieldList,
                             constructorParam,
                             createDeepConstructorParamList(psiClass, project),
-                            importList
+                            importList,
+                            findClassName("BaseControllerTest"),
+                            findClassName("BaseServiceTest"),
+                            findClassName("BaseRepositoryTest")
                     ));
                     importSet.clear();
                     process(genCtx, entryList);
@@ -149,7 +155,26 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         }
     }
 
+    private String findClassName(String name) {
+        PsiClass[] classesByName = PsiShortNamesCache.getInstance(project).getClassesByName(name, GlobalSearchScope.allScope(project));
+        if (classesByName.length == 0) return null;
+        return classesByName[0].getQualifiedName();
+    }
+
+    private PsiClass findClass(String name) {
+        PsiClass[] classesByName = PsiShortNamesCache.getInstance(project).getClassesByName(name, GlobalSearchScope.allScope(project));
+        if (classesByName.length == 0) return null;
+        return classesByName[0];
+    }
+
     protected ArrayList<ConstructorParam> createDeepConstructorParamList(PsiClass psiClass, Project project) {
+        PsiClass baseServiceTest = findClass("BaseServiceTest");
+        HashSet<String> needExclude = new HashSet<>();
+        if (baseServiceTest != null) {
+            for (PsiField field : baseServiceTest.getFields()) {
+                needExclude.add(getSubText(field.getType().getCanonicalText()));
+            }
+        }
         List<ConstructorParam> deepConstructorParamList = new ArrayList<>();
         ConstructorParam constructorParam = new ConstructorParam(
                 psiClass.getQualifiedName(),
@@ -167,7 +192,9 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         deepConstructorParamList.forEach(n -> {
             if (!deepConstructorParamHash.contains(n.getClassName())) {
                 deepConstructorParamHash.add(n.getClassName());
-                newDeepConstructorParamList.add(n);
+                if(!needExclude.contains(n.getClassName())){
+                    newDeepConstructorParamList.add(n);
+                }
             }
         });
         return newDeepConstructorParamList;
@@ -378,33 +405,6 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         if (classAnnotation == null) return null;
         RestInfo restInfo = new RestInfo();
         restInfo.setPath(path);
-        for (PsiParameter parameter : method.getParameterList().getParameters()) {
-            for (PsiAnnotation annotation : parameter.getAnnotations()) {
-                if (annotation.getQualifiedName().equals("org.springframework.web.bind.annotation.RequestBody")) {
-                    ConstructorParam constructorParam = new ConstructorParam(
-                            parameter.getType().getCanonicalText(),
-                            parameter.getType().getPresentableText(),
-                            parameter.getName()
-                    );
-                    restInfo.setBody(constructorParam);
-                    importSet.addAll(constructorParam.getImportNames());
-                }
-                if (annotation.getQualifiedName().equals("org.springframework.web.bind.annotation.RequestParam")) {
-                    for (PsiNameValuePair attribute : annotation.getParameterList().getAttributes()) {
-                        if (attribute.getAttributeName().equals("value")) {
-                            restInfo.getParams().add(getValue(attribute));
-                        }
-                    }
-                }
-                if (annotation.getQualifiedName().equals("org.springframework.web.bind.annotation.RequestHeader")) {
-                    for (PsiNameValuePair attribute : annotation.getParameterList().getAttributes()) {
-                        if (attribute.getAttributeName().equals("value")) {
-                            restInfo.getHeads().add(getValue(attribute));
-                        }
-                    }
-                }
-            }
-        }
         for (PsiAnnotation annotation : method.getAnnotations()) {
             if (annotation.getQualifiedName().endsWith("Mapping")) {
                 if (annotation.getQualifiedName().contains("Get")) {
@@ -419,6 +419,61 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                 if (annotation.getQualifiedName().contains("Delete")) {
                     restInfo.setRestMethod("DELETE");
                 }
+            }
+        }
+        for (PsiParameter parameter : method.getParameterList().getParameters()) {
+            for (PsiAnnotation annotation : parameter.getAnnotations()) {
+                if (annotation.getQualifiedName().equals("org.springframework.web.bind.annotation.RequestBody")) {
+                    ConstructorParam constructorParam = new ConstructorParam(
+                            parameter.getType().getCanonicalText(),
+                            parameter.getType().getPresentableText(),
+                            parameter.getName()
+                    );
+                    restInfo.setBody(constructorParam);
+                    importSet.addAll(constructorParam.getImportNames());
+                }
+                if (annotation.getQualifiedName().equals("org.springframework.web.bind.annotation.RequestParam")) {
+                    Boolean find = false;
+                    for (PsiNameValuePair attribute : annotation.getParameterList().getAttributes()) {
+                        if (attribute.getAttributeName().equals("value")) {
+                            find = true;
+                            restInfo.getParams().add(getValue(attribute));
+                        }
+                    }
+                    if (!find) {
+                        restInfo.getParams().add('"' + parameter.getName() + '"');
+                    }
+                }
+                if (annotation.getQualifiedName().equals("org.springframework.web.bind.annotation.RequestHeader")) {
+                    Boolean find = false;
+                    for (PsiNameValuePair attribute : annotation.getParameterList().getAttributes()) {
+                        if (attribute.getAttributeName().equals("value")) {
+                            find = true;
+                            restInfo.getHeads().add(getValue(attribute));
+                        }
+                    }
+                    if (!find) {
+                        restInfo.getHeads().add('"' + parameter.getName() + '"');
+                    }
+                }
+            }
+            if (restInfo.getRestMethod().equals("GET")) {
+                Boolean find = false;
+                for (PsiAnnotation annotation : parameter.getAnnotations()) {
+                    if (annotation.getQualifiedName().contains("org.springframework.web.bind.annotation")) {
+                        find = true;
+                    }
+                }
+                if (!find) {
+                    PsiClass paramClass = JavaPsiFacade.getInstance(project).findClass(getSubText(parameter.getType().getCanonicalText()), GlobalSearchScope.allScope(project));
+                    for (PsiField field : paramClass.getFields()) {
+                        restInfo.getParams().add('"' + field.getName() + '"');
+                    }
+                }
+            }
+        }
+        for (PsiAnnotation annotation : method.getAnnotations()) {
+            if (annotation.getQualifiedName().endsWith("Mapping")) {
                 for (PsiNameValuePair attribute : annotation.getParameterList().getAttributes()) {
                     if (attribute.getAttributeName().equals("value")) {
                         restInfo.setPath(connectUrl(path, getValue(attribute), restInfo.getParams()));

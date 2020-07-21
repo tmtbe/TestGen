@@ -28,6 +28,34 @@ public class TemplateEntry {
     }
 
     private List<String> importList = new ArrayList<String>();
+
+    public String getBaseControllerTest() {
+        return baseControllerTest;
+    }
+
+    public void setBaseControllerTest(String baseControllerTest) {
+        this.baseControllerTest = baseControllerTest;
+    }
+
+    public String getBaseServiceTest() {
+        return baseServiceTest;
+    }
+
+    public void setBaseServiceTest(String baseServiceTest) {
+        this.baseServiceTest = baseServiceTest;
+    }
+
+    public String getBaseRepositoryTest() {
+        return baseRepositoryTest;
+    }
+
+    public void setBaseRepositoryTest(String baseRepositoryTest) {
+        this.baseRepositoryTest = baseRepositoryTest;
+    }
+
+    private String baseControllerTest;
+    private String baseServiceTest;
+    private String baseRepositoryTest;
     private String className;
     private String packageName;
 
@@ -74,7 +102,10 @@ public class TemplateEntry {
                          List<String> fieldList,
                          List<ConstructorParam> constructorParamList,
                          List<ConstructorParam> deepConstructorParamList,
-                         List<String> importList
+                         List<String> importList,
+                         String baseControllerTest,
+                         String baseServiceTest,
+                         String baseRepositoryTest
     ) {
         this.className = className;
         this.packageName = packageName;
@@ -84,5 +115,8 @@ public class TemplateEntry {
         this.deepConstructorParamList = deepConstructorParamList;
         this.constructorParamList = constructorParamList;
         this.importList = importList;
+        this.baseControllerTest = baseControllerTest;
+        this.baseServiceTest = baseServiceTest;
+        this.baseRepositoryTest = baseRepositoryTest;
     }
 }
