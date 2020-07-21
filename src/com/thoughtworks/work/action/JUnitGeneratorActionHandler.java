@@ -457,7 +457,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                     }
                 }
             }
-            if (restInfo.getRestMethod().equals("GET")) {
+            if (restInfo.getRestMethod() != null && restInfo.getRestMethod().equals("GET")) {
                 Boolean find = false;
                 for (PsiAnnotation annotation : parameter.getAnnotations()) {
                     if (annotation.getQualifiedName().contains("org.springframework.web.bind.annotation")) {
@@ -477,9 +477,9 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                 for (PsiNameValuePair attribute : annotation.getParameterList().getAttributes()) {
                     if (attribute.getAttributeName().equals("value")) {
                         String value = getValue(attribute);
-                        value = value.replaceAll("\"","");
+                        value = value.replaceAll("\"", "");
                         for (String s : value.split("/")) {
-                            if(!s.isEmpty()) {
+                            if (!s.isEmpty()) {
                                 restInfo.getPathSegments().add(s);
                             }
                         }
