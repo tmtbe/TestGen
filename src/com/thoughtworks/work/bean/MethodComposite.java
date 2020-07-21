@@ -24,6 +24,10 @@ public class MethodComposite {
     private RestInfo restInfo = new RestInfo();
     private List<String> restInfoHeads = new ArrayList<>();
     private List<String> restInfoParams = new ArrayList<>();
+    private List<String> restInfoPathSegments = new ArrayList<>();
+    private String restInfoMethod;
+    private String restInfoPath;
+
 
     public String getRestInfoMethod() {
         return restInfoMethod;
@@ -40,9 +44,6 @@ public class MethodComposite {
     public void setRestInfoPath(String restInfoPath) {
         this.restInfoPath = restInfoPath;
     }
-
-    private String restInfoMethod;
-    private String restInfoPath;
 
     public ConstructorParam getRestInfoBody() {
         return restInfoBody;
@@ -128,6 +129,7 @@ public class MethodComposite {
         restInfoBody = restInfo.getBody();
         restInfoHeads = restInfo.getHeads();
         restInfoParams = restInfo.getParams();
+        restInfoPathSegments = restInfo.getPathSegments();
     }
     @Override
     public String toString() {
@@ -157,5 +159,13 @@ public class MethodComposite {
 
     public void setRestInfoParams(List<String> restInfoParams) {
         this.restInfoParams = restInfoParams;
+    }
+
+    public List<String> getRestInfoPathSegments() {
+        return restInfoPathSegments;
+    }
+
+    public void setRestInfoPathSegments(List<String> restInfoPathSegments) {
+        this.restInfoPathSegments = restInfoPathSegments;
     }
 }

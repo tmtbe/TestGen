@@ -4,6 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RestInfo {
+    private String restMethod;
+    private String path;
+    private ConstructorParam body;
+    private List<String> heads = new ArrayList<>();
+
+    private List<String> pathSegments = new ArrayList<>();
+
+    public List<String> getPathSegments() {
+        return pathSegments;
+    }
+
+    public void setPathSegments(List<String> pathSegments) {
+        this.pathSegments = pathSegments;
+    }
+
     public String getRestMethod() {
         return restMethod;
     }
@@ -20,9 +35,6 @@ public class RestInfo {
         this.path = path;
     }
 
-    private String restMethod;
-    private String path;
-
     public ConstructorParam getBody() {
         return body;
     }
@@ -30,9 +42,6 @@ public class RestInfo {
     public void setBody(ConstructorParam body) {
         this.body = body;
     }
-
-    private ConstructorParam body;
-    private List<String> heads = new ArrayList<>();
 
     public List<String> getHeads() {
         return heads;

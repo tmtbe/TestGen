@@ -192,7 +192,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         deepConstructorParamList.forEach(n -> {
             if (!deepConstructorParamHash.contains(n.getClassName())) {
                 deepConstructorParamHash.add(n.getClassName());
-                if(!needExclude.contains(n.getClassName())){
+                if (!needExclude.contains(n.getClassName())) {
                     newDeepConstructorParamList.add(n);
                 }
             }
@@ -476,7 +476,13 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             if (annotation.getQualifiedName().endsWith("Mapping")) {
                 for (PsiNameValuePair attribute : annotation.getParameterList().getAttributes()) {
                     if (attribute.getAttributeName().equals("value")) {
-                        restInfo.setPath(connectUrl(path, getValue(attribute), restInfo.getParams()));
+                        String value = getValue(attribute);
+                        value = value.replaceAll("\"","");
+                        for (String s : value.split("/")) {
+                            if(!s.isEmpty()) {
+                                restInfo.getPathSegments().add(s);
+                            }
+                        }
                     }
                 }
             }
