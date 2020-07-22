@@ -1,5 +1,8 @@
 package com.thoughtworks.work.action;
 
+import com.intellij.ide.hierarchy.HierarchyBrowserBaseEx;
+import com.intellij.ide.hierarchy.HierarchyNodeDescriptor;
+import com.intellij.ide.hierarchy.call.CalleeMethodsTreeStructure;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DataKeys;
 import com.intellij.openapi.application.ApplicationManager;
@@ -15,10 +18,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
 import com.thoughtworks.work.JUnitGeneratorContext;
 import com.thoughtworks.work.JUnitGeneratorFileCreator;
-import com.thoughtworks.work.bean.ConstructorParam;
-import com.thoughtworks.work.bean.MethodComposite;
-import com.thoughtworks.work.bean.RestInfo;
-import com.thoughtworks.work.bean.TemplateEntry;
+import com.thoughtworks.work.bean.*;
 import com.thoughtworks.work.util.DateTool;
 import com.thoughtworks.work.util.JUnitGeneratorUtil;
 import com.thoughtworks.work.util.LogAdapter;
@@ -58,6 +58,8 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
 
     private Set<String> importSet = new HashSet<>();
     private Project project;
+    private ArrayList<ConstructorParam> deepConstructorParamList;
+    private HashSet<String> classConstructorParamClassNameSet;
 
     public JUnitGeneratorActionHandler(String name) {
         this.templateKey = name;
@@ -122,6 +124,11 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                         buildMethodList(innerClas.getMethods(), pMethodList, getPrivate);
                         buildFieldList(psiClass.getFields(), fieldList);
                     }
+                    deepConstructorParamList = createDeepConstructorParamList(psiClass, project);
+                    classConstructorParamClassNameSet = new HashSet<>();
+                    for (ConstructorParam constructorParam : deepConstructorParamList) {
+                        classConstructorParamClassNameSet.add(constructorParam.getClassName());
+                    }
 
                     processMethods(genCtx, methodList, methodCompositeList);
                     processMethods(genCtx, pMethodList, privateMethodCompositeList);
@@ -130,16 +137,14 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                     constructorParam.forEach(n -> {
                         importSet.addAll(n.getImportNames());
                     });
-                    List<String> importList = importSet.stream().filter(n -> {
-                        return n.split(".").length != 1;
-                    }).collect(Collectors.toList());
+                    List<String> importList = importSet.stream().filter(n -> n.split(".").length != 1).collect(Collectors.toList());
                     entryList.add(new TemplateEntry(genCtx.getClassName(false),
                             genCtx.getPackageName(),
                             methodCompositeList,
                             privateMethodCompositeList,
                             fieldList,
                             constructorParam,
-                            createDeepConstructorParamList(psiClass, project),
+                            deepConstructorParamList,
                             importList,
                             findClassName("BaseApiTest"),
                             findClassName("BaseBusinessTest"),
@@ -354,13 +359,40 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         composite.setReflectionCode(reflectionCode);
         composite.setSignature(signature);
         composite.setRestInfo(restInfo);
-
+        //hierarchy
+        CalleeMethodsTreeStructure calleeMethodsTreeStructure = new CalleeMethodsTreeStructure(project, (PsiMember) method, HierarchyBrowserBaseEx.getScopeProject());
+        CallNode callNode = new CallNode();
+        callNode.setClassName(method.getContainingClass().getName());
+        callNode.setMethodName(method.getName());
+        callNode.setInterface(method.getContainingClass().isInterface());
+        hierarchy(calleeMethodsTreeStructure, callNode, calleeMethodsTreeStructure.getBaseDescriptor());
+        composite.setCallNode(callNode);
         //if the super method is not the same as us, grab the data from that also
         final PsiMethod[] superMethods = method.findSuperMethods();
         if (superMethods.length > 0) {
             composite.setBase(toComposite(genCtx, superMethods[0]));
         }
         return composite;
+    }
+
+    private void hierarchy(CalleeMethodsTreeStructure calleeMethodsTreeStructure, CallNode parentCallNode, HierarchyNodeDescriptor parent) {
+        for (Object childElement : calleeMethodsTreeStructure.getChildElements(parent)) {
+            HierarchyNodeDescriptor child = (HierarchyNodeDescriptor) childElement;
+            PsiMethod childMethod = (PsiMethod) child.getPsiElement();
+            CallNode callNode = new CallNode();
+            PsiClass containingClass = childMethod.getContainingClass();
+            if (classConstructorParamClassNameSet.contains(containingClass.getQualifiedName()) && containingClass.getContainingFile().getVirtualFile().getPath().contains(project.getBasePath())) {
+                callNode.setClassName(containingClass.getName());
+                callNode.setMethodName(childMethod.getName());
+                callNode.setInterface(containingClass.isInterface());
+                for (PsiParameter parameter : childMethod.getParameterList().getParameters()) {
+                    callNode.getMethodParamClassList().add(parameter.getType().getPresentableText());
+                    callNode.getMethodParamNameList().add(parameter.getName());
+                }
+                parentCallNode.addChild(callNode);
+                hierarchy(calleeMethodsTreeStructure, callNode, child);
+            }
+        }
     }
 
     private String getValue(PsiNameValuePair psiNameValuePair) {

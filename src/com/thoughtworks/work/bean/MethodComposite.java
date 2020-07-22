@@ -27,6 +27,7 @@ public class MethodComposite {
     private List<String> restInfoPathSegments = new ArrayList<>();
     private String restInfoMethod;
     private String restInfoPath;
+    private CallNode callNode;
 
 
     public String getRestInfoMethod() {
@@ -167,5 +168,13 @@ public class MethodComposite {
 
     public void setRestInfoPathSegments(List<String> restInfoPathSegments) {
         this.restInfoPathSegments = restInfoPathSegments;
+    }
+
+    public CallNode getCallNode() {
+        return callNode;
+    }
+
+    public void setCallNode(CallNode callNode) {
+        this.callNode = callNode;
     }
 }
