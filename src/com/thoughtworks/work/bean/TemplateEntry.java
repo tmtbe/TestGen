@@ -54,6 +54,7 @@ public class TemplateEntry {
     private String baseApiTest;
     private String baseBusinessTest;
     private String baseFakeTest;
+    private String baseClientTest;
     private String className;
     private String packageName;
 
@@ -103,7 +104,8 @@ public class TemplateEntry {
                          List<String> importList,
                          String baseApiTest,
                          String baseBusinessTest,
-                         String baseFakeTest
+                         String baseFakeTest,
+                         String baseClientTest
     ) {
         this.className = className;
         this.packageName = packageName;
@@ -116,5 +118,14 @@ public class TemplateEntry {
         this.baseApiTest = baseApiTest;
         this.baseBusinessTest = baseBusinessTest;
         this.baseFakeTest = baseFakeTest;
+        this.baseClientTest = baseClientTest;
+    }
+
+    public String getBaseClientTest() {
+        return baseClientTest;
+    }
+
+    public void setBaseClientTest(String baseClientTest) {
+        this.baseClientTest = baseClientTest;
     }
 }
