@@ -148,7 +148,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                             importList,
                             findClassName("BaseApiTest"),
                             findClassName("BaseBusinessTest"),
-                            findClassName("BaseFakeTest"),
+                            findClassName("BaseRepositoryTest"),
                             findClassName("BaseClientTest")
                     ));
                     importSet.clear();
