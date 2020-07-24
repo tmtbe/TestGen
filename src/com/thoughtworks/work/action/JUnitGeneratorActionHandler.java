@@ -4,9 +4,10 @@ import com.intellij.ide.hierarchy.HierarchyBrowserBaseEx;
 import com.intellij.ide.hierarchy.HierarchyNodeDescriptor;
 import com.intellij.ide.hierarchy.call.CalleeMethodsTreeStructure;
 import com.intellij.openapi.actionSystem.DataContext;
-import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.actionSystem.EditorWriteActionHandler;
 import com.intellij.openapi.project.Project;
@@ -28,6 +29,7 @@ import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.resource.util.StringResourceRepository;
 import org.apache.velocity.runtime.resource.util.StringResourceRepositoryImpl;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.io.StringWriter;
@@ -49,17 +51,20 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
     private static final Logger logger = JUnitGeneratorUtil.getLogger(JUnitGeneratorActionHandler.class);
 
     private static final String VIRTUAL_TEMPLATE_NAME = "junitgenerator.vm";
+    public static final String BASE_API_TEST = "BaseApiTest";
+    public static final String BASE_BUSINESS_TEST = "BaseBusinessTest";
+    public static final String BASE_REPOSITORY_TEST = "BaseRepositoryTest";
+    public static final String BASE_CLIENT_TEST = "BaseClientTest";
 
     private final String templateKey;
 
-    private static final Pattern ISGETSET = Pattern.compile("^(is|get|set)(.*)");
+    private static final Pattern IS_GET_SET = Pattern.compile("^(is|get|set)(.*)");
 
     private final Tool tool = new Tool();
 
-    private Set<String> importSet = new HashSet<>();
+    private final Set<String> nowImportSet = new HashSet<>();
     private Project project;
-    private ArrayList<ConstructorParam> deepConstructorParamList;
-    private HashSet<String> classConstructorParamClassNameSet;
+    private final HashSet<String> nowClassConstructorParamClassNameSet = new HashSet<>();
 
     public JUnitGeneratorActionHandler(String name) {
         this.templateKey = name;
@@ -70,15 +75,9 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         return JUnitGeneratorUtil.getInstance(project).getTemplate(this.templateKey);
     }
 
-    /**
-     * Executed upon action in the Editor
-     *
-     * @param editor      IDEA Editor
-     * @param dataContext DataCOntext
-     */
-    public void executeWriteAction(Editor editor, DataContext dataContext) {
+    public void executeWriteAction(Editor editor, @Nullable Caret caret, DataContext dataContext) {
         PsiJavaFile file = JUnitGeneratorUtil.getSelectedJavaFile(dataContext);
-        Project project = DataKeys.PROJECT.getData(dataContext);
+        Project project = LangDataKeys.PROJECT.getData(dataContext);
         if (file == null) {
             return;
         }
@@ -93,67 +92,45 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
 
         PsiClass[] psiClasses = file.getClasses();
 
-        if (psiClasses == null) {
-            return;
-        }
-
         for (PsiClass psiClass : psiClasses) {
+            nowClassConstructorParamClassNameSet.clear();
+            nowImportSet.clear();
             if ((psiClass != null) && (psiClass.getQualifiedName() != null)) {
                 final JUnitGeneratorContext genCtx = new JUnitGeneratorContext(dataContext, file, psiClass);
                 final List<TemplateEntry> entryList = new ArrayList<TemplateEntry>();
 
                 try {
-
-                    //if (!psiClass.isInterface()) {
-                    boolean getPrivate = true;
-
                     List<PsiMethod> methodList = new ArrayList<PsiMethod>();
-                    List<PsiMethod> pMethodList = new ArrayList<PsiMethod>();
                     List<String> fieldList = new ArrayList<String>();
 
                     List<MethodComposite> methodCompositeList = new ArrayList<MethodComposite>();
-                    List<MethodComposite> privateMethodCompositeList = new ArrayList<MethodComposite>();
 
-                    buildMethodList(psiClass.getMethods(), methodList, !getPrivate);
-                    buildMethodList(psiClass.getMethods(), pMethodList, getPrivate);
+                    buildMethodList(psiClass.getMethods(), methodList, false);
                     buildFieldList(psiClass.getFields(), fieldList);
-                    PsiClass[] innerClass = psiClass.getAllInnerClasses();
 
-                    for (PsiClass innerClas : innerClass) {
-                        buildMethodList(innerClas.getMethods(), methodList, !getPrivate);
-                        buildMethodList(innerClas.getMethods(), pMethodList, getPrivate);
-                        buildFieldList(psiClass.getFields(), fieldList);
-                    }
-                    deepConstructorParamList = createDeepConstructorParamList(psiClass, project);
-                    classConstructorParamClassNameSet = new HashSet<>();
+                    ArrayList<ConstructorParam> deepConstructorParamList = createDeepConstructorParamList(psiClass, project);
+
                     for (ConstructorParam constructorParam : deepConstructorParamList) {
-                        classConstructorParamClassNameSet.add(constructorParam.getClassName());
+                        nowClassConstructorParamClassNameSet.add(constructorParam.getClassName());
                     }
 
                     processMethods(genCtx, methodList, methodCompositeList);
-                    processMethods(genCtx, pMethodList, privateMethodCompositeList);
 
                     List<ConstructorParam> constructorParam = createConstructorParam(psiClass);
-                    constructorParam.forEach(n -> {
-                        importSet.addAll(n.getImportNames());
-                    });
-                    List<String> importList = importSet.stream().filter(n -> n.split(".").length != 1).collect(Collectors.toList());
+                    constructorParam.forEach(n -> nowImportSet.addAll(n.getImportNames()));
                     entryList.add(new TemplateEntry(genCtx.getClassName(false),
                             genCtx.getPackageName(),
                             methodCompositeList,
-                            privateMethodCompositeList,
                             fieldList,
                             constructorParam,
                             deepConstructorParamList,
-                            importList,
-                            findClassName("BaseApiTest"),
-                            findClassName("BaseBusinessTest"),
-                            findClassName("BaseRepositoryTest"),
-                            findClassName("BaseClientTest")
+                            nowImportSet.stream().filter(n -> n.split("\\.").length != 1).collect(Collectors.toList()),
+                            findClassName(BASE_API_TEST),
+                            findClassName(BASE_BUSINESS_TEST),
+                            findClassName(BASE_REPOSITORY_TEST),
+                            findClassName(BASE_CLIENT_TEST)
                     ));
-                    importSet.clear();
                     process(genCtx, entryList);
-                    //}
                 } catch (Exception e) {
                     logger.error(e);
                 }
@@ -174,10 +151,10 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
     }
 
     protected ArrayList<ConstructorParam> createDeepConstructorParamList(PsiClass psiClass, Project project) {
-        PsiClass baseServiceTest = findClass("BaseServiceTest");
+        PsiClass baseBusinessTest = findClass(BASE_BUSINESS_TEST);
         HashSet<String> needExclude = new HashSet<>();
-        if (baseServiceTest != null) {
-            for (PsiField field : baseServiceTest.getFields()) {
+        if (baseBusinessTest != null) {
+            for (PsiField field : baseBusinessTest.getFields()) {
                 needExclude.add(getSubText(field.getType().getCanonicalText()));
             }
         }
@@ -190,7 +167,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         deepConstructorParamList.add(constructorParam);
         createDeepConstructorParam(deepConstructorParamList, psiClass, project, constructorParam);
         deepConstructorParamList.forEach(n -> {
-            importSet.addAll(n.getImportNames());
+            nowImportSet.addAll(n.getImportNames());
         });
         Collections.reverse(deepConstructorParamList);
         HashSet<String> deepConstructorParamHash = new HashSet<>();
@@ -239,24 +216,6 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         return result;
     }
 
-    protected List<String> getParamNameList(PsiClass psiClass) {
-        List<String> result = new ArrayList<>();
-        if (psiClass.getConstructors().length == 0) return new ArrayList<>();
-        for (PsiParameter parameter : psiClass.getConstructors()[0].getParameterList().getParameters()) {
-            result.add(getSubText(parameter.getType().getPresentableText()));
-        }
-        return result;
-    }
-
-    protected List<String> getParamClassList(PsiClass psiClass) {
-        List<String> result = new ArrayList<>();
-        if (psiClass.getConstructors().length == 0) return result;
-        for (PsiParameter parameter : psiClass.getConstructors()[0].getParameterList().getParameters()) {
-            result.add(getSubText(parameter.getType().getCanonicalText()));
-        }
-        return result;
-    }
-
     private String getSubText(String text) {
         return text.split("<")[0];
     }
@@ -282,7 +241,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             String methodName = method.getName();
 
             if (JUnitGeneratorUtil.getInstance(genCtx.getProject()).isCombineGetterAndSetter() &&
-                    ISGETSET.matcher(methodName).find()) {
+                    IS_GET_SET.matcher(methodName).find()) {
                 methodName = parseAccessorMutator(methodName, methodList);
             }
 
@@ -380,8 +339,10 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             HierarchyNodeDescriptor child = (HierarchyNodeDescriptor) childElement;
             PsiMethod childMethod = (PsiMethod) child.getPsiElement();
             CallNode callNode = new CallNode();
+            assert childMethod != null;
             PsiClass containingClass = childMethod.getContainingClass();
-            if (classConstructorParamClassNameSet.contains(containingClass.getQualifiedName()) && containingClass.getContainingFile().getVirtualFile().getPath().contains(project.getBasePath())) {
+            assert containingClass != null;
+            if (nowClassConstructorParamClassNameSet.contains(containingClass.getQualifiedName()) && containingClass.getContainingFile().getVirtualFile().getPath().contains(project.getBasePath())) {
                 callNode.setClassName(containingClass.getName());
                 callNode.setMethodName(childMethod.getName());
                 callNode.setInterface(containingClass.isInterface());
@@ -404,8 +365,8 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             PsiReferenceExpressionImpl value = (PsiReferenceExpressionImpl) psiNameValuePair.getValue();
             if (value.resolve().getParent() instanceof PsiClass) {
                 PsiClass psiClass = (PsiClass) value.resolve().getParent();
-                importSet.add(psiClass.getQualifiedName());
-                importSet.add("static " + psiClass.getQualifiedName() + "." + value.getCanonicalText());
+                nowImportSet.add(psiClass.getQualifiedName());
+                nowImportSet.add("static " + psiClass.getQualifiedName() + "." + value.getCanonicalText());
             }
             return value.getCanonicalText();
         }
@@ -415,8 +376,8 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                 if (child instanceof PsiReferenceExpression) {
                     if (child.getReference().resolve().getParent() instanceof PsiClass) {
                         PsiClass psiClass = (PsiClass) child.getReference().resolve().getParent();
-                        importSet.add(psiClass.getQualifiedName());
-                        importSet.add("static " + psiClass.getQualifiedName() + "." + child.getText());
+                        nowImportSet.add(psiClass.getQualifiedName());
+                        nowImportSet.add("static " + psiClass.getQualifiedName() + "." + child.getText());
                     }
                 }
             }
@@ -435,7 +396,6 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                 path = getValue(attribute);
             }
         }
-        if (classAnnotation == null) return null;
         RestInfo restInfo = new RestInfo();
         restInfo.setPath(path);
         for (PsiAnnotation annotation : method.getAnnotations()) {
@@ -463,7 +423,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
                             parameter.getName()
                     );
                     restInfo.setBody(constructorParam);
-                    importSet.addAll(constructorParam.getImportNames());
+                    nowImportSet.addAll(constructorParam.getImportNames());
                 }
                 if (annotation.getQualifiedName().equals("org.springframework.web.bind.annotation.RequestParam")) {
                     Boolean find = false;
@@ -523,24 +483,15 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         return restInfo;
     }
 
-    private String connectUrl(String path1, String path2, List<String> parmas) {
-        String p = tool.buildHttpParam(parmas);
-        if (!p.trim().isEmpty()) {
-            return path1 + " + " + path2 + "+" + '"' + tool.buildHttpParam(parmas) + '"';
-        } else {
-            return path1 + " + " + path2;
-        }
-    }
-
     private String createSignature(PsiMethod method) {
         String signature;
-        String params = "";
+        StringBuilder params = new StringBuilder();
         for (PsiParameter param : method.getParameterList().getParameters()) {
-            params += param.getText() + ", ";
+            params.append(param.getText()).append(", ");
         }
 
-        if (params.endsWith(", ")) {
-            params = params.substring(0, params.length() - 2);
+        if (params.toString().endsWith(", ")) {
+            params = new StringBuilder(params.substring(0, params.length() - 2));
         }
 
         signature = method.getName() + "(" + params + ")";
@@ -551,13 +502,13 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
 
     private List<String> createReflectionCode(JUnitGeneratorContext genCtx, PsiMethod method) {
 
-        String getMethodText = "\"" + method.getName() + "\"";
+        StringBuilder getMethodText = new StringBuilder("\"" + method.getName() + "\"");
 
         for (PsiParameter param : method.getParameterList().getParameters()) {
             try {
                 String className = (new StringTokenizer(param.getText(), " ")).nextToken();
-                getMethodText = getMethodText + ", " + className + ".class";
-            } catch (Throwable e) {
+                getMethodText.append(", ").append(className).append(".class");
+            } catch (Throwable ignored) {
 
             }
         }
@@ -616,30 +567,30 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
 
     private MethodComposite mutateOverloadedMethodName(JUnitGeneratorContext context, MethodComposite method, int count) {
 
-        String stringToAppend = "";
+        StringBuilder stringToAppend = new StringBuilder();
         final String overloadType = JUnitGeneratorUtil.getInstance(context.getProject()).getListOverloadedMethodsBy();
 
         if (JUnitGeneratorUtil.NUMBER.equalsIgnoreCase(overloadType)) {
-            stringToAppend += count;
+            stringToAppend.append(count);
         } else if (JUnitGeneratorUtil.PARAM_CLASS.equalsIgnoreCase(overloadType)) {
 
             if (method.getParamClasses().size() > 1) {
-                stringToAppend += "For";
+                stringToAppend.append("For");
             }
 
             for (String paramClass : method.getParamClasses()) {
-                paramClass = paramClass.substring(0, 1).toUpperCase() + paramClass.substring(1, paramClass.length());
-                stringToAppend += paramClass;
+                paramClass = paramClass.substring(0, 1).toUpperCase() + paramClass.substring(1);
+                stringToAppend.append(paramClass);
             }
         } else if (JUnitGeneratorUtil.PARAM_NAME.equalsIgnoreCase(overloadType)) {
 
             if (method.getParamNames().size() > 1) {
-                stringToAppend += "For";
+                stringToAppend.append("For");
             }
 
             for (String paramName : method.getParamNames()) {
-                paramName = paramName.substring(0, 1).toUpperCase() + paramName.substring(1, paramName.length());
-                stringToAppend += paramName;
+                paramName = paramName.substring(0, 1).toUpperCase() + paramName.substring(1);
+                stringToAppend.append(paramName);
             }
         }
 
@@ -661,7 +612,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
 
         String baseName;
 
-        Matcher matcher = ISGETSET.matcher(methodName);
+        Matcher matcher = IS_GET_SET.matcher(methodName);
         if (matcher.find()) {
             baseName = matcher.group(2);
         } else {
@@ -671,7 +622,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         boolean setter = false;
         boolean getter = false;
         for (PsiMethod method : (List<PsiMethod>) methodList) {
-            matcher = ISGETSET.matcher(method.getName());
+            matcher = IS_GET_SET.matcher(method.getName());
             if (matcher.find() && baseName.equals(matcher.group(2))) {
                 if ("set".equals(matcher.group(1))) {
                     setter = true;
@@ -753,7 +704,7 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             context.put("entryList", entryList);
             context.put("today", JUnitGeneratorUtil.formatDate("MM/dd/yyyy"));
             context.put("date", new DateTool());
-            context.put("tool", new Tool());
+            context.put("tool", tool);
 
             final Template template = ve.getTemplate(VIRTUAL_TEMPLATE_NAME);
             final StringWriter writer = new StringWriter();

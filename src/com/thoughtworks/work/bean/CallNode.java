@@ -1,11 +1,25 @@
 package com.thoughtworks.work.bean;
 
-import com.thoughtworks.work.util.Tool;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class CallNode {
+    private int index;
+    private String className;
+    private Boolean isInterface;
+    private String methodName;
+    private List<String> methodParamNameList = new ArrayList<>();
+    private List<String> methodParamClassList = new ArrayList<>();
+    private final List<CallNode> children = new ArrayList<>();
+
+    public Boolean getInterface() {
+        return isInterface;
+    }
+
+    public void setInterface(Boolean anInterface) {
+        isInterface = anInterface;
+    }
+
     public String getClassName() {
         return className;
     }
@@ -46,24 +60,6 @@ public class CallNode {
         this.index = index;
     }
 
-    private int index;
-    private String className;
-
-    public Boolean getInterface() {
-        return isInterface;
-    }
-
-    public void setInterface(Boolean anInterface) {
-        isInterface = anInterface;
-    }
-
-    private Boolean isInterface;
-    private String methodName;
-    private List<String> methodParamNameList = new ArrayList<>();
-    private List<String> methodParamClassList = new ArrayList<>();
-    private List<CallNode> children = new ArrayList<>();
-
-
     public void addChild(CallNode callNode) {
         children.add(callNode);
         callNode.setIndex(this.index + 1);
@@ -86,7 +82,7 @@ public class CallNode {
     public String buildMockParams() {
         StringBuilder a = new StringBuilder("(");
         for (int i = 0; i < methodParamClassList.size(); i++) {
-            a.append("Mockito.any(" + methodParamClassList.get(i) + ".class)");
+            a.append("Mockito.any(").append(methodParamClassList.get(i)).append(".class)");
             if (i != methodParamClassList.size() - 1) {
                 a.append(", ");
             }

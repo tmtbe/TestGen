@@ -12,10 +12,72 @@ import java.util.List;
 public class TemplateEntry {
 
     private final List<MethodComposite> methodList;
-    private final List<MethodComposite> privateMethodList;
     private final List<String> fieldList;
     private final List<ConstructorParam> deepConstructorParamList;
     private final List<ConstructorParam> constructorParamList;
+    private String baseApiTest;
+    private String baseBusinessTest;
+    private String baseRepositoryTest;
+    private String baseClientTest;
+    private String className;
+    private String packageName;
+
+    public TemplateEntry(String className,
+                         String packageName,
+                         List<MethodComposite> methodList,
+                         List<String> fieldList,
+                         List<ConstructorParam> constructorParamList,
+                         List<ConstructorParam> deepConstructorParamList,
+                         List<String> importList,
+                         String baseApiTest,
+                         String baseBusinessTest,
+                         String baseRepositoryTest,
+                         String baseClientTest
+    ) {
+        this.className = className;
+        this.packageName = packageName;
+        this.methodList = methodList;
+        this.fieldList = fieldList;
+        this.deepConstructorParamList = deepConstructorParamList;
+        this.constructorParamList = constructorParamList;
+        this.importList = importList;
+        this.baseApiTest = baseApiTest;
+        this.baseBusinessTest = baseBusinessTest;
+        this.baseRepositoryTest = baseRepositoryTest;
+        this.baseClientTest = baseClientTest;
+    }
+
+    public List<MethodComposite> getMethodList() {
+        return methodList;
+    }
+
+    public List<String> getFieldList() {
+        return fieldList;
+    }
+
+    public List<ConstructorParam> getDeepConstructorParamList() {
+        return deepConstructorParamList;
+    }
+
+    public List<ConstructorParam> getConstructorParamList() {
+        return constructorParamList;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
+    public String getPackageName() {
+        return packageName;
+    }
+
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
+    }
 
     public List<String> getImportList() {
         return importList;
@@ -49,76 +111,6 @@ public class TemplateEntry {
 
     public void setBaseRepositoryTest(String baseRepositoryTest) {
         this.baseRepositoryTest = baseRepositoryTest;
-    }
-
-    private String baseApiTest;
-    private String baseBusinessTest;
-    private String baseRepositoryTest;
-    private String baseClientTest;
-    private String className;
-    private String packageName;
-
-    public List<MethodComposite> getMethodList() {
-        return methodList;
-    }
-
-    public List<MethodComposite> getPrivateMethodList() {
-        return privateMethodList;
-    }
-
-    public List<String> getFieldList() {
-        return fieldList;
-    }
-
-    public List<ConstructorParam> getDeepConstructorParamList() {
-        return deepConstructorParamList;
-    }
-
-    public List<ConstructorParam> getConstructorParamList() {
-        return constructorParamList;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
-    }
-
-    public String getPackageName() {
-        return packageName;
-    }
-
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
-    }
-
-    public TemplateEntry(String className,
-                         String packageName,
-                         List<MethodComposite> methodList,
-                         List<MethodComposite> privateMethodList,
-                         List<String> fieldList,
-                         List<ConstructorParam> constructorParamList,
-                         List<ConstructorParam> deepConstructorParamList,
-                         List<String> importList,
-                         String baseApiTest,
-                         String baseBusinessTest,
-                         String baseRepositoryTest,
-                         String baseClientTest
-    ) {
-        this.className = className;
-        this.packageName = packageName;
-        this.methodList = methodList;
-        this.privateMethodList = privateMethodList;
-        this.fieldList = fieldList;
-        this.deepConstructorParamList = deepConstructorParamList;
-        this.constructorParamList = constructorParamList;
-        this.importList = importList;
-        this.baseApiTest = baseApiTest;
-        this.baseBusinessTest = baseBusinessTest;
-        this.baseRepositoryTest = baseRepositoryTest;
-        this.baseClientTest = baseClientTest;
     }
 
     public String getBaseClientTest() {
