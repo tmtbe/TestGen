@@ -1,5 +1,6 @@
 package com.thoughtworks.work.bean;
 
+import b.c.f.C;
 import com.intellij.psi.PsiMethod;
 
 import java.util.ArrayList;
@@ -18,6 +19,8 @@ public class MethodComposite {
     private String signature;
     private List<String> paramClasses;
     private List<String> paramNames;
+    private List<ConstructorParam> constructorParams;
+    private ConstructorParam returnType;
     private List<String> reflectionCode;
     private MethodComposite base;
     private List<MethodComposite> overloadedMethods = new ArrayList<MethodComposite>();
@@ -176,5 +179,21 @@ public class MethodComposite {
 
     public void setCallNode(CallNode callNode) {
         this.callNode = callNode;
+    }
+
+    public List<ConstructorParam> getConstructorParams() {
+        return constructorParams;
+    }
+
+    public void setConstructorParams(List<ConstructorParam> constructorParams) {
+        this.constructorParams = constructorParams;
+    }
+
+    public ConstructorParam getReturnType() {
+        return returnType;
+    }
+
+    public void setReturnType(ConstructorParam returnType) {
+        this.returnType = returnType;
     }
 }

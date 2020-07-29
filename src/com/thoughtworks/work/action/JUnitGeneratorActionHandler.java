@@ -12,9 +12,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.actionSystem.EditorWriteActionHandler;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.tree.java.PsiBinaryExpressionImpl;
-import com.intellij.psi.impl.source.tree.java.PsiLiteralExpressionImpl;
-import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
+import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
 import com.thoughtworks.work.JUnitGeneratorContext;
@@ -294,16 +292,22 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
      * @return the method composite object
      */
     private MethodComposite toComposite(JUnitGeneratorContext genCtx, PsiMethod method) {
-        List<String> paramClassList = new ArrayList<String>();
+        List<String> paramClassList = new ArrayList<>();
+        List<String> paramNameList = new ArrayList<>();
+        List<ConstructorParam> constructorParams = new ArrayList<>();
         for (PsiParameter param : method.getParameterList().getParameters()) {
             paramClassList.add(param.getType().getCanonicalText());
-        }
-
-        List<String> paramNameList = new ArrayList<String>();
-        for (PsiParameter param : method.getParameterList().getParameters()) {
             paramNameList.add(param.getName());
+            ConstructorParam constructorParam = new ConstructorParam(param.getType().getCanonicalText(),
+                    param.getType().getPresentableText(),
+                    param.getName());
+            constructorParams.add(constructorParam);
+            nowImportSet.addAll(constructorParam.getImportNames());
         }
-
+        ConstructorParam returnType = new ConstructorParam(method.getReturnType().getCanonicalText(),
+                method.getReturnType().getPresentableText(),
+                "result");
+        nowImportSet.addAll(returnType.getImportNames());
         String signature = createSignature(method);
         RestInfo restInfo = createRestInfo(method);
 
@@ -313,8 +317,10 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         final MethodComposite composite = new MethodComposite();
         composite.setMethod(method);
         composite.setName(method.getName());
+        composite.setReturnType(returnType);
         composite.setParamClasses(paramClassList);
         composite.setParamNames(paramNameList);
+        composite.setConstructorParams(constructorParams);
         composite.setReflectionCode(reflectionCode);
         composite.setSignature(signature);
         composite.setRestInfo(restInfo);
@@ -356,13 +362,13 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
         }
     }
 
-    private String getValue(PsiNameValuePair psiNameValuePair) {
-        if (psiNameValuePair.getValue() instanceof PsiLiteralExpressionImpl) {
-            PsiLiteralExpressionImpl value = (PsiLiteralExpressionImpl) psiNameValuePair.getValue();
+    private String getValue(PsiAnnotationMemberValue memberValue) {
+        if (memberValue instanceof PsiLiteralExpressionImpl) {
+            PsiLiteralExpressionImpl value = (PsiLiteralExpressionImpl) memberValue;
             return value.getCanonicalText();
         }
-        if (psiNameValuePair.getValue() instanceof PsiReferenceExpressionImpl) {
-            PsiReferenceExpressionImpl value = (PsiReferenceExpressionImpl) psiNameValuePair.getValue();
+        if (memberValue instanceof PsiReferenceExpressionImpl) {
+            PsiReferenceExpressionImpl value = (PsiReferenceExpressionImpl) memberValue;
             if (value.resolve().getParent() instanceof PsiClass) {
                 PsiClass psiClass = (PsiClass) value.resolve().getParent();
                 nowImportSet.add(psiClass.getQualifiedName());
@@ -370,8 +376,8 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             }
             return value.getCanonicalText();
         }
-        if (psiNameValuePair.getValue() instanceof PsiBinaryExpressionImpl) {
-            PsiBinaryExpressionImpl value = (PsiBinaryExpressionImpl) psiNameValuePair.getValue();
+        if (memberValue instanceof PsiBinaryExpressionImpl) {
+            PsiBinaryExpressionImpl value = (PsiBinaryExpressionImpl) memberValue;
             for (PsiElement child : value.getChildren()) {
                 if (child instanceof PsiReferenceExpression) {
                     if (child.getReference().resolve().getParent() instanceof PsiClass) {
@@ -383,17 +389,36 @@ public class JUnitGeneratorActionHandler extends EditorWriteActionHandler {
             }
             return value.getText();
         } else {
-            return psiNameValuePair.getValue().getText();
+            return memberValue.getText();
         }
     }
+    private String getValue(PsiNameValuePair psiNameValuePair) {
+        return getValue(psiNameValuePair.getValue());
+    }
 
+    private List<String> getValueList(PsiNameValuePair psiNameValuePair){
+        if(psiNameValuePair.getValue() instanceof PsiArrayInitializerMemberValueImpl){
+            ArrayList<String> result = new ArrayList<>();
+            PsiArrayInitializerMemberValueImpl psiArrayInitializerMemberValue = (PsiArrayInitializerMemberValueImpl)psiNameValuePair.getValue();
+            for (PsiElement child : psiArrayInitializerMemberValue.getChildren()) {
+                if(child instanceof PsiAnnotationMemberValue){
+                    result.add(getValue((PsiAnnotationMemberValue)child));
+                }
+            }
+            return result;
+        }else{
+            return Collections.singletonList(getValue(psiNameValuePair));
+        }
+    }
     private RestInfo createRestInfo(PsiMethod method) {
         PsiAnnotation classAnnotation = method.getContainingClass().getAnnotation("org.springframework.web.bind.annotation.RequestMapping");
-        if (classAnnotation == null) return new RestInfo();
+        if (!method.getContainingClass().isInterface() && classAnnotation == null) return new RestInfo();
         String path = "";
-        for (PsiNameValuePair attribute : classAnnotation.getParameterList().getAttributes()) {
-            if (attribute.getAttributeName().equals("value")) {
-                path = getValue(attribute);
+        if (classAnnotation != null) {
+            for (PsiNameValuePair attribute : classAnnotation.getParameterList().getAttributes()) {
+                if (attribute.getAttributeName().equals("value")) {
+                    path = getValue(attribute);
+                }
             }
         }
         RestInfo restInfo = new RestInfo();

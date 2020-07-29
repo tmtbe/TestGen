@@ -2,6 +2,7 @@ package com.thoughtworks.work.util;
 
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -98,10 +99,7 @@ public class JUnitGeneratorUtil {
      */
     public static String[] getDelimitedProperty(String key, String delimiter) {
         final String property = getProperty(key);
-        if (property != null) {
-            return property.split(delimiter);
-        }
-        return null;
+        return property.split(delimiter);
     }
 
     /**
@@ -127,7 +125,7 @@ public class JUnitGeneratorUtil {
      * @return Project object
      */
     public static Project getProject(DataContext ctx) {
-        return DataKeys.PROJECT.getData(ctx);
+        return LangDataKeys.PROJECT.getData(ctx);
     }
 
     /**
@@ -153,27 +151,25 @@ public class JUnitGeneratorUtil {
     /**
      * Returns source paths for currently selected java file
      *
-     * @param clss psiClass
+     * @param psiClass psiClass
      * @param ctx  the data context
      * @return list of source paths
      */
-    public static String getSourcePath(PsiClass clss, DataContext ctx) {
-        if (clss == null) {
+    public static String getSourcePath(PsiClass psiClass, DataContext ctx) {
+        if (psiClass == null) {
             return null;
-        } else if (clss.getContainingFile() == null) {
+        } else if (psiClass.getContainingFile() == null) {
             return null;
-        } else if (clss.getContainingFile().getVirtualFile() == null) {
+        } else if (psiClass.getContainingFile().getVirtualFile() == null) {
             return null;
         }
 
         VirtualFile[] roots = ProjectRootManager.getInstance(getProject(ctx)).getContentSourceRoots();
-        String className = clss.getContainingFile().getVirtualFile().getPath();
+        String className = psiClass.getContainingFile().getVirtualFile().getPath();
 
-        if (className != null) {
-            for (VirtualFile root : roots) {
-                if (className.startsWith(root.getPath())) {
-                    return root.getPath();
-                }
+        for (VirtualFile root : roots) {
+            if (className.startsWith(root.getPath())) {
+                return root.getPath();
             }
         }
         return null;
@@ -191,7 +187,7 @@ public class JUnitGeneratorUtil {
             throws IOException {
         String outputPattern = getInstance(genCtx.getProject()).getOutputFilePattern();
         String sourcePath = getSourcePath(genCtx.getPsiClass(), genCtx.getDataContext());
-        String projectBase = genCtx.getProject().getBaseDir().getPath();
+        String projectBase = genCtx.getProject().getBasePath();
 
         if (sourcePath == null || projectBase == null) {
             throw new IllegalArgumentException(
